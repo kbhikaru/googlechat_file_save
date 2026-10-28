@@ -104,3 +104,12 @@ function onMessage(event) {
 function onAddToSpace(event) {
   return { "text": "請求書保存ボットです！ファイルを添付し、テキストに「//プロジェクト名」を入力して送信してください。" };
 }
+
+/**
+ * 初回の権限承認用。GASエディタからこの関数を選んで「実行」すると、
+ * 承認画面が表示される。保存先フォルダにアクセスできるかも確認できる。
+ */
+function authorizeTest() {
+  var folder = DriveApp.getFolderById(FOLDER_ID);
+  Logger.log("保存先フォルダにアクセスできました: " + folder.getName());
+}
