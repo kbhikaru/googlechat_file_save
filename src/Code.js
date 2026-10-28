@@ -1,21 +1,56 @@
 // Googleドライブの保存先フォルダID
 const FOLDER_ID = "1qZ2qS-PdsduU5o74JBEU0A9SLTT43xEZ";
 
+// この記号以降の文字列をファイル名の【】に入れる（全角「／／」も可）
+const NAME_MARKER = /\/\/|／／/;
+
+/**
+ * メッセージ本文からメンション（@ボット・@個人名）を取り除く。
+ * Chat の annotations（USER_MENTION）があれば位置情報で正確に削除し、
+ * 「@山田 太郎」のような空白入りの表示名にも対応する。
+ */
+function removeMentions(message) {
+  var text = message.text || "";
+  var mentions = (message.annotations || [])
+    .filter(function (a) {
+      return a.type === "USER_MENTION" && typeof a.startIndex === "number" && a.length > 0;
+    })
+    .sort(function (a, b) { return b.startIndex - a.startIndex; }); // 後ろから削除してずれを防ぐ
+
+  mentions.forEach(function (a) {
+    if (text.charAt(a.startIndex) === "@") {
+      text = text.slice(0, a.startIndex) + text.slice(a.startIndex + a.length);
+    }
+  });
+
+  // annotations で消せなかった @xxx も念のため削除
+  return text.replace(/[@＠]\S+/g, "");
+}
+
+/**
+ * 「//」以降の文字列（その行の終わりまで）をプロジェクト名として取り出す。
+ * 「//」が無い場合は空文字を返す。
+ */
+function extractProjectName(message) {
+  var text = removeMentions(message);
+  var match = NAME_MARKER.exec(text);
+  if (!match) return "";
+  var after = text.slice(match.index + match[0].length);
+  return after.split(/\r?\n/)[0].replace(/\s+/g, " ").trim();
+}
+
 function onMessage(event) {
   try {
     // Google Chat アプリ（アドオン形式）のイベント構造からメッセージを抽出
-    var message = (event.chat && event.chat.messagePayload && event.chat.messagePayload.message) 
-                  || event.message 
+    var message = (event.chat && event.chat.messagePayload && event.chat.messagePayload.message)
+                  || event.message
                   || {};
-    
-    // メンションを除いた本文（argumentText）または本文テキストを取得
-    var messageText = message.argumentText ? message.argumentText.trim() : "";
-    if (!messageText && message.text) {
-      messageText = message.text.replace(/@\S+/g, "").trim();
-    }
+
+    // 「//」以降をプロジェクト名として取得（メンションは除外）
+    var messageText = extractProjectName(message);
 
     if (!messageText) {
-      return { "text": "⚠️ エラー：プロジェクト名が入力されていません。テキスト欄にプロジェクト名を記載してください。" };
+      return { "text": "⚠️ エラー：プロジェクト名が見つかりません。テキストに「//プロジェクト名」の形で記載してください。（例：@ボット 確認お願いします //株式会社サンプル案件）" };
     }
 
     var attachments = message.attachment || message.attachments || [];
@@ -67,5 +102,5 @@ function onMessage(event) {
 }
 
 function onAddToSpace(event) {
-  return { "text": "請求書保存ボットです！ファイルを添付し、テキストに「プロジェクト名」を入力して送信してください。" };
+  return { "text": "請求書保存ボットです！ファイルを添付し、テキストに「//プロジェクト名」を入力して送信してください。" };
 }
