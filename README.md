@@ -49,7 +49,7 @@ Google Chat 上に投稿された請求書・見積書・領収書などの添�
 .
 ├── README.md               # 本ドキュメント
 └── src/
-│   ├── appsscript.json     # GASマニフェスト（スコープ・ランタイム設定）
+    ├── appsscript.json     # GASマニフェスト（スコープ・ランタイム設定）
     └── Code.js             # ボット本体ロジック（イベント解析・Drive保存）
 ```
 
